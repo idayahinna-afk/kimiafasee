@@ -353,6 +353,13 @@ body.deck-open{overflow:hidden}
 .credits td:first-child{white-space:nowrap}
 @media (max-width:860px){.split,.split.wide-txt{grid-template-columns:1fr}.ghsgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.gallery.g3{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:480px){.gallery.g2,.gallery.g3{grid-template-columns:1fr}}
+
+.savebar{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;width:min(360px,calc(100% - 32px));background:var(--ink);color:var(--bg);border-radius:10px;padding:10px 14px;display:grid;gap:8px;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.savebar[hidden]{display:none!important}
+.sb-text{display:flex;justify-content:space-between;gap:10px;font-size:.88rem}
+.sb-track{height:6px;background:color-mix(in srgb,var(--bg) 25%,transparent);border-radius:999px;overflow:hidden}
+.sb-track i{display:block;height:100%;width:0;background:var(--flame);transition:width .2s}
+body.deck-open .savebar{bottom:calc(64px + env(safe-area-inset-bottom,0px))}
 </style>
 </head>
 <body>
@@ -925,7 +932,7 @@ body.deck-open{overflow:hidden}
         <h3>Menerbitkan di GitHub Pages</h3>
         <ol class="steps">
           <li>Buat repositori baru di github.com, misalnya <code>lab-virtual-kimia-x</code>, dengan visibilitas <b>Public</b>.</li>
-          <li>Pilih <b>Add file → Upload files</b>, unggah <code>index.html</code>, lalu <b>Commit changes</b>.</li>
+          <li>Pilih <b>Add file → Upload files</b>, unggah <code>index.html</code> dan <code>sw.js</code> (keduanya di folder yang sama), lalu <b>Commit changes</b>.</li>
           <li>Buka <b>Settings → Pages</b>. Pada <b>Source</b> pilih <b>Deploy from a branch</b>, branch <b>main</b>, folder <b>/ (root)</b>, lalu <b>Save</b>.</li>
           <li>Tunggu 1–2 menit. Alamat website muncul di halaman yang sama, misalnya <code>https://namaakun.github.io/lab-virtual-kimia-x/</code>.</li>
           <li>Bagikan alamat itu kepada peserta didik. Tautan langsung ke satu presentasi: tambahkan <code>#deck-1-1</code> (modul 1 pertemuan 1) di akhir alamat.</li>
@@ -939,6 +946,17 @@ body.deck-open{overflow:hidden}
   sekolah: "SMA Negeri ...",
   tahun: "2026/2027"
 };</pre>
+      </div>
+      <div style="grid-column:1/-1">
+        <h3>Penyimpanan offline</h3>
+        <p>Saat website pertama kali dibuka lewat internet, seluruh gambar diunduh sekali dan disimpan di penyimpanan internal browser. Kunjungan berikutnya memakai gambar yang tersimpan, sehingga presentasi tetap lancar walaupun internet di kelas lambat atau terputus.</p>
+        <div class="readout" style="margin-top:12px">
+          <div class="ro"><div class="k">Status</div><div class="v" id="stState" style="font-size:1rem">Memeriksa…</div></div>
+          <div class="ro"><div class="k">Gambar tersimpan</div><div class="v" id="stCount">–</div></div>
+          <div class="ro"><div class="k">Ruang terpakai</div><div class="v" id="stUsage">–</div></div>
+        </div>
+        <div class="row" style="margin-top:12px"><button class="btn" id="stDownload">Unduh ulang semua gambar</button><button class="btn ghost" id="stClear">Hapus gambar tersimpan</button></div>
+        <p class="muted" style="font-size:.88rem;margin-top:8px">Tips: buka website sekali di laptop yang dipakai untuk presentasi sebelum ke kelas, tunggu sampai muncul tulisan "Semua gambar tersimpan", lalu website siap dipakai tanpa internet.</p>
       </div>
       <div style="grid-column:1/-1">
         <h3>Sumber gambar</h3>
@@ -970,6 +988,10 @@ body.deck-open{overflow:hidden}
 </div>
 
 
+<div class="savebar" id="saveBar" hidden role="status" aria-live="polite">
+  <div class="sb-text"><b id="sbTitle">Menyimpan gambar untuk offline</b><span id="sbDetail" class="mono">0/0</span></div>
+  <div class="sb-track"><i id="sbFill"></i></div>
+</div>
 <footer>
   <div class="wrap foot">
     <div><b>Lab Virtual Kimia X</b> · Media presentasi dan simulasi IPA (Kimia) Fase E, Kurikulum Merdeka dengan Pembelajaran Mendalam.</div>
@@ -2000,7 +2022,7 @@ GHSF.forEach(([k,n])=>{IMG['ghs-'+k]={f:'GHS-pictogram-'+k+'.svg',c:n}});
 const imgSrc=(f,w)=>'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(f)+'?width='+(w||960);
 const imgPage=f=>'https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(f.replace(/ /g,'_'));
 function fig(key,cls,w){const m=IMG[key];if(!m)return '';return `<figure class="fig ${cls||''}"><div class="ph"><img loading="lazy" decoding="async" src="${imgSrc(m.f,w)}" alt="${esc(m.c)}" onerror="this.closest('.fig').classList.add('err')"><span class="ph-msg">Gambar memerlukan koneksi internet</span></div><figcaption>${esc(m.c)} · <a href="${imgPage(m.f)}" target="_blank" rel="noopener">Wikimedia Commons</a></figcaption></figure>`}
-function figs(v,cls){if(!v)return '';if(v==='ghs')return '<div class="ghsgrid">'+GHSF.map(([k])=>fig('ghs-'+k,'ghsfig',240)).join('')+'</div>';if(Array.isArray(v))return `<div class="gallery g${Math.min(v.length,3)}">`+v.map(k=>fig(k,'',640)).join('')+'</div>';return fig(v,cls||'')}
+function figs(v,cls){if(!v)return '';if(v==='ghs')return '<div class="ghsgrid">'+GHSF.map(([k])=>fig('ghs-'+k,'ghsfig',240)).join('')+'</div>';if(Array.isArray(v))return `<div class="gallery g${Math.min(v.length,3)}">`+v.map(k=>fig(k,'',960)).join('')+'</div>';return fig(v,cls||'')}
 /* pasangan gambar untuk setiap presentasi: cover = slide judul; s = {indeks slide: gambar} */
 const IMGMAP={
   '1-1':{cover:'lab',s:{0:'glass',1:['stove','solar','soap'],2:'goggles'}},
@@ -2130,6 +2152,44 @@ $('#menuBtn').addEventListener('click',()=>{const o=$('#mainNav').classList.togg
 $$('.tab').forEach(t=>t.addEventListener('click',()=>{$('#mainNav').classList.remove('open');$('#menuBtn').setAttribute('aria-expanded','false')}));
 
 window.LabVirtual={decks:DECKS,open:openDeck,close:closeDeck,go:dkGo,state:dk};
+
+/* ================= PENYIMPANAN OFFLINE (Cache Storage via service worker) ================= */
+const OFF={urls:[...new Set(Object.values(IMG).map(m=>imgSrc(m.f,m.f.startsWith('GHS-')?240:960)))],key:'lvk-img-v1-done'};
+const hasSW='serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1');
+function fmtBytes(b){if(!b&&b!==0)return '–';if(b<1024*1024)return fmt(b/1024,0)+' KB';if(b<1024*1024*1024)return fmt(b/1024/1024,1)+' MB';return fmt(b/1024/1024/1024,2)+' GB'}
+function setBar(done,total,title){const bar=$('#saveBar');bar.hidden=false;$('#sbTitle').textContent=title||'Menyimpan gambar untuk offline';$('#sbDetail').textContent=`${done}/${total}`;$('#sbFill').style.width=(total?done/total*100:0)+'%'}
+async function updateUsage(){try{if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();$('#stUsage').textContent=fmtBytes(e.usage)}}catch(e){}}
+function swPost(msg){return navigator.serviceWorker.ready.then(reg=>{const t=navigator.serviceWorker.controller||reg.active;if(t)t.postMessage(msg)})}
+function precacheAll(force){
+  if(!hasSW)return;
+  let doneFlag=false;try{doneFlag=localStorage.getItem(OFF.key)==='1'}catch(e){}
+  if(!doneFlag||force)setBar(0,OFF.urls.length);
+  $('#stState').textContent='Mengunduh gambar…';
+  swPost({type:'precache',urls:OFF.urls});
+}
+if(hasSW){
+  navigator.serviceWorker.addEventListener('message',e=>{const d=e.data||{};
+    if(d.type==='progress'){if(!$('#saveBar').hidden)setBar(d.done,d.total);$('#stCount').textContent=`${d.done-d.failed}/${d.total}`}
+    if(d.type==='complete'){const ok=d.done-d.failed;$('#stCount').textContent=`${ok}/${d.total}`;
+      if(d.failed===0){try{localStorage.setItem(OFF.key,'1')}catch(err){}$('#stState').textContent='Semua gambar tersimpan · siap offline';if(!$('#saveBar').hidden){setBar(d.total,d.total,'Semua gambar tersimpan');setTimeout(()=>{$('#saveBar').hidden=true},2500)}}
+      else{$('#stState').textContent=`${d.failed} gambar gagal diunduh. Periksa internet lalu tekan "Unduh ulang".`;if(!$('#saveBar').hidden){setBar(ok,d.total,`${d.failed} gambar gagal, dicoba lagi saat kunjungan berikutnya`);setTimeout(()=>{$('#saveBar').hidden=true},5000)}}
+      updateUsage();}
+    if(d.type==='status'){$('#stCount').textContent=`${Math.min(d.cached,OFF.urls.length)}/${OFF.urls.length}`}
+    if(d.type==='cleared'){try{localStorage.removeItem(OFF.key)}catch(err){}$('#stState').textContent='Gambar tersimpan sudah dihapus';$('#stCount').textContent=`0/${OFF.urls.length}`;updateUsage()}
+  });
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').then(()=>{
+      if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
+      precacheAll(false);updateUsage();
+    }).catch(()=>{$('#stState').textContent='Penyimpanan offline tidak aktif: file sw.js belum diunggah ke folder yang sama dengan index.html.'});
+  });
+  $('#stDownload').addEventListener('click',()=>precacheAll(true));
+  $('#stClear').addEventListener('click',()=>swPost({type:'clear'}));
+}else{
+  $('#stState').textContent=location.protocol==='file:'?'Aktif setelah website dibuka lewat alamat https (GitHub Pages), bukan dari file di komputer.':'Browser ini belum mendukung penyimpanan offline.';
+  $('#stDownload').disabled=true;$('#stClear').disabled=true;
+}
+
 /* ================= loop ================= */
 function redrawAll(){ghDraw();lvDraw();rcDraw();baDraw();flDraw();maDraw();balDraw();glUpdate(false);nnUpdate()}
 function loop(){
